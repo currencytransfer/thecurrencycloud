@@ -11,6 +11,7 @@ require 'thecurrencycloud/client'
 require 'thecurrencycloud/price'
 require 'thecurrencycloud/trade'
 require 'thecurrencycloud/payment'
+require 'thecurrencycloud/beneficiary'
 require 'thecurrencycloud/bank'
 
 module TheCurrencyCloud
@@ -64,7 +65,7 @@ module TheCurrencyCloud
   class TheCurrencyCloud
     include HTTParty
     debug_output $stdout
-
+    RestClient.log = $stdout
     class Parser::DealWithTheCurrencyCloudInvalidJson < HTTParty::Parser
       # The thecurrencycloud API returns an ID as a string when a 201 Created
       # response is returned. Unfortunately this is invalid json.
