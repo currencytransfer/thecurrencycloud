@@ -8,11 +8,6 @@ $LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
 
 require 'thecurrencycloud/version'
 require 'thecurrencycloud/client'
-require 'thecurrencycloud/price'
-require 'thecurrencycloud/trade'
-require 'thecurrencycloud/payment'
-require 'thecurrencycloud/beneficiary'
-require 'thecurrencycloud/bank'
 
 module TheCurrencyCloud
   # Just allows callers to do TheCurrencyCloud.api_key "..." rather than TheCurrencyCloud::TheCurrencyCloud.api_key "..." etc
@@ -81,19 +76,9 @@ module TheCurrencyCloud
 
     @@base_uri = 'https://api.thecurrencycloud.com/api/en/v1.0'
     @@api_key = ''
-
-    # The API needs different headers for POST requests
-    # So we set set as default and pass POST headers
-    # on POST and PUT
-    @@post_headers = {
-      'User-Agent' => "thecurrencycloud-ruby-#{VERSION}",
-      'Content-Type' => 'application/x-www-form-urlencoded',
-      'Accept-Encoding' => 'gzip, deflate',
-      'Accept' => '*/*; q=0.5, application/xml'
-    }
     headers(
       'User-Agent' => "thecurrencycloud-ruby-#{VERSION}",
-      'Content-Type' => 'application/json; charset=utf-8',
+      'Content-Type' => 'application/x-www-form-urlencoded',
       'Accept-Encoding' => 'gzip, deflate'
     )
     base_uri @@base_uri
@@ -105,28 +90,21 @@ module TheCurrencyCloud
       @@api_key = api_key
     end
 
-    def self.get(uri, options = {})
-      handle_response(super(uri, options))
+    def self.get(*args)
+      handle_response(super)
     end
 
-    def self.post(uri, options = {})
-      handle_response(super(uri, options.merge(headers: @@post_headers)))
+    def self.post(*args)
+      handle_response(super)
     end
 
-    def self.put(uri, options = {})
-      handle_response(super(uri, options.merge(headers: @@post_headers)))
+    def self.put(*args)
+      handle_response(super)
     end
 
-    def self.delete(uri, options = {})
-      handle_response(super(uri, options))
+    def self.delete(*args)
+      handle_response(super)
     end
-
-    # def self.post_form(action,options={})
-    #   response = RestClient.post "#{TheCurrencyCloud.default_options[:base_uri]}#{action}",options
-    #   data = response.body
-    #   handle_response(response)
-    #   return JSON.parse(data)
-    # end
 
     def self.handle_response(response) # :nodoc:
       case response.code
