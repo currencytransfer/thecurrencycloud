@@ -14,7 +14,7 @@ module TheCurrencyCloud
 
     def prices_market(ccy_pair, options = {})
       response = get("prices/market/#{ccy_pair.upcase}", options)
-      Price.new(response)
+      Hashie::Mash.new(response).data
     end
 
     def prices_client_quote(buy_currency, sell_currency,
@@ -23,50 +23,50 @@ module TheCurrencyCloud
       options.merge!(buy_currency: buy_currency, sell_currency: sell_currency,
                      side: side, amount: amount)
       response = post('prices/client_quote', options)
-      Price.new(response)
+      Hashie::Mash.new(response).data
     end
 
     # Returns a list of trades
     def trades(options = {})
       response = get('trades', options)
-      mash = Trade.new(response)
-      mash.map { |d| Trade.new(d) }
+      mash = Hashie::Mash.new(response).data
+      mash.map { |d| Hashie::Mash.new(d).data }
     end
 
     # Executes a trade
     def trade_execute(options)
       side = convert_sell_sym(options[:side])
       response = post('trade/execute', options.merge(side: side))
-      Trade.new(response)
+      Hashie::Mash.new(response).data
     end
 
     # Executes a trade with payment
     def trade_execute_with_payment(options)
       side = convert_sell_sym(options[:side])
       response = post('trade/execute_with_payment', options.merge(side: side))
-      Trade.new(response)
+      Hashie::Mash.new(response).data
     end
 
     def trade(trade_id)
       response = get("trade/#{trade_id}")
-      Trade.new(response)
+      Hashie::Mash.new(response).data
     end
 
     def settlement_account(trade_id)
       response = get("trade/#{trade_id}/settlement_account")
-      Trade.new(response)
+      Hashie::Mash.new(response).data
     end
     # Returns a list of payments
     def payments(options = {})
       # /api/en/v1.0/:token/payments
       response = get('payments', options)
-      response.parsed_response['data'].map { |d| Payment.new(d) }
+      response.parsed_response['data'].map { |d| Hashie::Mash.new(d).data }
     end
 
     def payment(trade_id, options = {})
       # /api/en/v1.0/:token/payment/:payment_id
       response = get("payment/#{trade_id}", options)
-      Payment.new(response)
+      Hashie::Mash.new(response).data
     end
 
     def create_payment(id, options)
@@ -75,7 +75,7 @@ module TheCurrencyCloud
     end
 
     def add_payment(options)
-      Payment.new(post('payment/add', options))
+      Hashie::Mash.new(post('payment/add', options)).data
     end
 
     def update_payment(id, options)
@@ -85,7 +85,7 @@ module TheCurrencyCloud
     def bank_accounts
       # /api/en/v1.0/:token/bank_accounts
       response = get('bank_accounts')
-      response.parsed_response['data'].map { |d| Hashie::Mash.new(d) }
+      response.parsed_response['data'].map { |d| Hashie::Mash.new(d).data }
     end
 
     alias_method :beneficiaries, :bank_accounts
@@ -93,22 +93,22 @@ module TheCurrencyCloud
     def beneficiary(id)
       # /api/en/v1.0/:token/bank_account/:beneficiary_id
       response = get("beneficiary/#{id}")
-      Hashie::Mash.new(response)
+      Hashie::Mash.new(response).data
     end
 
     def update_beneficiary(beneficiary_id, beneficiary_details)
       response = post("beneficiary/#{beneficiary_id}", beneficiary_details)
-      Hashie::Mash.new(response)
+      Hashie::Mash.new(response).data
     end
 
     def beneficiaries
       response = get('beneficiaries')
-      Hashie::Mash.new(response)
+      Hashie::Mash.new(response).data
     end
 
     def create_beneficiary(beneficiary_details)
       response = post('beneficiary/new', beneficiary_details)
-      Hashie::Mash.new(response)
+      Hashie::Mash.new(response).data
     end
 
     def beneficiary_required_details(currency, destination_country_code)
@@ -116,12 +116,12 @@ module TheCurrencyCloud
       response = get('beneficiaries/required_fields',
                      ccy: currency,
                      destination_country_code: destination_country_code)
-      Hashie::Mash.new(response).map(&:required).flatten.uniq
+      Hashie::Mash.new(response).data.map(&:required).flatten.uniq
     end
 
     def beneficiary_validate_details(options = {})
-      response = get("beneficiary/validate_details", options)
-      Hashie::Mash.new(response)
+      response = get('beneficiary/validate_details', options)
+      Hashie::Mash.new(response).data
     end
 
     def bank_required_fields(currency, destination_country_code)
@@ -130,7 +130,7 @@ module TheCurrencyCloud
 
     def create_bank_account(bank)
       response = post('bank_account/new', bank)
-      Hashie::Mash.new(response)
+      Hashie::Mash.new(response).data
     end
 
     # Close the session
@@ -138,7 +138,7 @@ module TheCurrencyCloud
       # /api/en/v1.0/:token/close_session
       response = post('close_session')
       @token = nil
-      Hashie::Mash.new(response)
+      Hashie::Mash.new(response).data
     end
 
     private
@@ -151,7 +151,7 @@ module TheCurrencyCloud
           api_key: @api_key || TheCurrencyCloud.api_key
         }
       )
-      Hashie::Mash.new(response)
+      Hashie::Mash.new(response).data
     end
 
     def get(action, options = {})
@@ -180,7 +180,7 @@ module TheCurrencyCloud
       elsif side == :sell || side == 2
         side = 2
       else
-        fail "Side must be :buy or :sell"
+        fail 'Side must be :buy or :sell'
       end
 
       side
