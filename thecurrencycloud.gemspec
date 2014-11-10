@@ -29,7 +29,6 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<json>, [">= 0"])
       s.add_runtime_dependency(%q<hashie>, ["~> 1.0"])
       s.add_runtime_dependency(%q<httparty>, ["~> 0.8"])
-      s.add_runtime_dependency(%q<rest-client>, [">= 0"])
     else
       s.add_dependency(%q<rake>, [">= 0"])
       s.add_dependency(%q<fakeweb>, ["~> 1.3"])
@@ -39,7 +38,6 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<json>, [">= 0"])
       s.add_dependency(%q<hashie>, ["~> 1.0"])
       s.add_dependency(%q<httparty>, ["~> 0.8"])
-      s.add_dependency(%q<rest-client>, [">= 0"])
     end
   else
     s.add_dependency(%q<rake>, [">= 0"])
@@ -50,6 +48,5 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<json>, [">= 0"])
     s.add_dependency(%q<hashie>, ["~> 1.0"])
     s.add_dependency(%q<httparty>, ["~> 0.8"])
-    s.add_dependency(%q<rest-client>, [">= 0"])
   end
 end

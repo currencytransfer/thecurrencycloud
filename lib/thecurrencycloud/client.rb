@@ -1,6 +1,5 @@
 require 'thecurrencycloud'
 require 'json'
-require 'rest_client'
 
 module TheCurrencyCloud
   # Represents a client and associated functionality.
