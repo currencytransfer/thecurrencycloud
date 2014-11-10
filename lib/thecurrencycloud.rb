@@ -15,7 +15,6 @@ require 'thecurrencycloud/beneficiary'
 require 'thecurrencycloud/bank'
 
 module TheCurrencyCloud
-
   # Just allows callers to do TheCurrencyCloud.api_key "..." rather than TheCurrencyCloud::TheCurrencyCloud.api_key "..." etc
   class << self
     def api_key(api_key = nil)
@@ -79,24 +78,48 @@ module TheCurrencyCloud
       end
     end
     parser Parser::DealWithTheCurrencyCloudInvalidJson
+
     @@base_uri = 'https://api.thecurrencycloud.com/api/en/v1.0'
     @@api_key = ''
-    headers({
+
+    # The API needs different headers for POST requests
+    # So we set set as default and pass POST headers
+    # on POST and PUT
+    @@post_headers = {
+      'User-Agent' => "thecurrencycloud-ruby-#{VERSION}",
+      'Content-Type' => 'application/x-www-form-urlencoded',
+      'Accept-Encoding' => 'gzip, deflate',
+      'Accept' => '*/*; q=0.5, application/xml'
+    }
+    headers(
       'User-Agent' => "thecurrencycloud-ruby-#{VERSION}",
       'Content-Type' => 'application/json; charset=utf-8',
-      'Accept-Encoding' => 'gzip, deflate' })
+      'Accept-Encoding' => 'gzip, deflate'
+    )
     base_uri @@base_uri
 
-    # Sets the API key which will be used to make calls to the TheCurrencyCloud API.
+    # Sets the API key which will be
+    # used to make calls to the TheCurrencyCloud API.
     def self.api_key(api_key = nil)
       return @@api_key unless api_key
       @@api_key = api_key
     end
 
-    def self.get(*args);      handle_response super end
-    def self.post(*args);     handle_response super end
-    def self.put(*args);      handle_response super end
-    def self.delete(*args);   handle_response super end
+    def self.get(uri, options = {})
+      handle_response(super(uri, options))
+    end
+
+    def self.post(uri, options = {})
+      handle_response(super(uri, options.merge(headers: @@post_headers)))
+    end
+
+    def self.put(uri, options = {})
+      handle_response(super(uri, options.merge(headers: @@post_headers)))
+    end
+
+    def self.delete(uri, options = {})
+      handle_response(super(uri, options))
+    end
 
     # def self.post_form(action,options={})
     #   response = RestClient.post "#{TheCurrencyCloud.default_options[:base_uri]}#{action}",options
@@ -121,7 +144,7 @@ module TheCurrencyCloud
         data = (response.body && response.body.length >= 2) ? response.body : nil
         return response if data.nil?
         mash_response = Hashie::Mash.new(JSON.parse(data))
-        if mash_response.status == "error"
+        if mash_response.status == 'error'
           fail BadRequest.new(mash_response)
         else
           response

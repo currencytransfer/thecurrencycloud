@@ -30,7 +30,7 @@ module TheCurrencyCloud
     def trades(options = {})
       response = get('trades', options)
       mash = Hashie::Mash.new(response).data
-      mash.map { |d| Hashie::Mash.new(d).data }
+      mash.map { |d| Hashie::Mash.new(d) }
     end
 
     # Executes a trade
@@ -52,15 +52,17 @@ module TheCurrencyCloud
       Hashie::Mash.new(response).data
     end
 
+    # Bad API design here
     def settlement_account(trade_id)
       response = get("trade/#{trade_id}/settlement_account")
-      Hashie::Mash.new(response).data
+      # Strange behaviour. If we try to access the data it is nulL
+      Hashie::Mash.new(response)
     end
     # Returns a list of payments
     def payments(options = {})
       # /api/en/v1.0/:token/payments
       response = get('payments', options)
-      response.parsed_response['data'].map { |d| Hashie::Mash.new(d).data }
+      response.parsed_response['data'].map { |d| Hashie::Mash.new(d) }
     end
 
     def payment(trade_id, options = {})
@@ -75,7 +77,7 @@ module TheCurrencyCloud
     end
 
     def add_payment(options)
-      Hashie::Mash.new(post('payment/add', options)).data
+      Hashie::Mash.new(post('payment/add', options))
     end
 
     def update_payment(id, options)
@@ -85,7 +87,7 @@ module TheCurrencyCloud
     def bank_accounts
       # /api/en/v1.0/:token/bank_accounts
       response = get('bank_accounts')
-      response.parsed_response['data'].map { |d| Hashie::Mash.new(d).data }
+      response.parsed_response['data'].map { |d| Hashie::Mash.new(d) }
     end
 
     alias_method :beneficiaries, :bank_accounts
@@ -149,7 +151,7 @@ module TheCurrencyCloud
         body: {
           login_id: login_id,
           api_key: @api_key || TheCurrencyCloud.api_key
-        }
+        }.to_query
       )
       Hashie::Mash.new(response).data
     end
@@ -159,16 +161,16 @@ module TheCurrencyCloud
     end
 
     def post(action, options = {})
-      TheCurrencyCloud.post(uri_for(action), body: options)
+      TheCurrencyCloud.post(uri_for(action), body: options.to_query)
     end
 
     # def post_form(action, options = {})
     #   TheCurrencyCloud.post_form uri_for(action), options
     # end
 
-    def put(action, options = {})
-      TheCurrencyCloud.put(uri_for(action), body: options)
-    end
+    # def put(action, options = {})
+    #   TheCurrencyCloud.put(uri_for(action), body: options)
+    # end
 
     def uri_for(action)
       "/#{token}/#{action}"
