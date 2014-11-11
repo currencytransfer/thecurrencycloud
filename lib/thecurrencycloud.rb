@@ -89,45 +89,5 @@ module TheCurrencyCloud
       return @@api_key unless api_key
       @@api_key = api_key
     end
-
-    def self.get(*args)
-      handle_response(super)
-    end
-
-    def self.post(*args)
-      handle_response(super)
-    end
-
-    def self.put(*args)
-      handle_response(super)
-    end
-
-    def self.delete(*args)
-      handle_response(super)
-    end
-
-    def self.handle_response(response) # :nodoc:
-      case response.code
-      when 400
-        fail BadRequest.new(Hashie::Mash.new(response))
-      when 401
-        fail Unauthorized.new(Hashie::Mash.new(response))
-      when 404
-        fail NotFound.new
-      when 400...500
-        fail ClientError.new
-      when 500...600
-        fail ServerError.new
-      else
-        data = (response.body && response.body.length >= 2) ? response.body : nil
-        return response if data.nil?
-        mash_response = Hashie::Mash.new(JSON.parse(data))
-        if mash_response.status == 'error'
-          fail BadRequest.new(mash_response)
-        else
-          response
-        end
-      end
-    end
   end
 end
