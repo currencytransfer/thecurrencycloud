@@ -236,8 +236,8 @@ module TheCurrencyCloud
     def request_to_hash(request)
       result = {
         http_method: request.http_method.name.demodulize.upcase,
-        path: request.path.to_s,
-        headers: request.options[:headers],
+        uri: request.uri.to_s,
+        headers: request.options[:headers].to_h,
         query: request.options[:query],
         body: request.options[:body]
       }
