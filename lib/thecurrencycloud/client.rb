@@ -93,7 +93,7 @@ module TheCurrencyCloud
 
     def update_payment(id, options)
       response = post("payment/#{id}", options)
-      Hashie::Mash.new(og_and_map(response))
+      Hashie::Mash.new(log_and_map(response))
     end
 
     def bank_accounts
