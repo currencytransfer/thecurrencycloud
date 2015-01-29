@@ -1,6 +1,5 @@
 require 'thecurrencycloud'
 require 'json'
-require 'rest_client'
 
 module TheCurrencyCloud
   # Represents a client and associated functionality.
@@ -13,126 +12,131 @@ module TheCurrencyCloud
       @token = authenticate(client_id)
     end
 
-    def prices_market(ccy_pair,options={})
-      response = get "prices/market/#{ccy_pair.upcase}", options
-      mash = Price.new(response)
-      return mash.data
+    def with_logger(logger, logger_key, broker_account_id = nil)
+      @logger = logger
+      @logger_key = logger_key
+      @broker_account_id = broker_account_id
+
+      self
     end
 
-    def prices_client_quote(buy_currency, sell_currency, side, amount, options={})
+    def prices_market(ccy_pair, options = {})
+      response = get("prices/market/#{ccy_pair.upcase}", options)
+      Hashie::Mash.new(log_and_map(response)).data
+    end
+
+    def prices_client_quote(buy_currency, sell_currency,
+                            side, amount, options = {})
       side = convert_sell_sym(side)
-      options.merge!(:buy_currency => buy_currency, :sell_currency => sell_currency, :side  => side, :amount => amount)
-      response = TheCurrencyCloud.post_form("/#{token}/prices/client_quote", options)
-      mash = Price.new(response)
-      return mash.data
+      options.merge!(buy_currency: buy_currency, sell_currency: sell_currency,
+                     side: side, amount: amount)
+      response = post('prices/client_quote', options)
+      Hashie::Mash.new(log_and_map(response)).data
     end
 
     # Returns a list of trades
-    def trades(options={})
-      response = TheCurrencyCloud.get("/#{token}/trades",query: options)
-      mash = Trade.new(response)
-      mash.data.collect{|d| Trade.new(d)}
+    def trades(options = {})
+      response = get('trades', options)
+      Hashie::Mash.new(log_and_map(response)).data
+                                             .map { |d| Hashie::Mash.new(d) }
     end
 
     # Executes a trade
     def trade_execute(options)
       side = convert_sell_sym(options[:side])
-      response = TheCurrencyCloud.post_form("/#{token}/trade/execute", options.merge(:side => side))
-      mash = Trade.new(response)
-      return mash.data
+      response = post('trade/execute', options.merge(side: side))
+      Hashie::Mash.new(log_and_map(response)).data
     end
 
     # Executes a trade with payment
     def trade_execute_with_payment(options)
       side = convert_sell_sym(options[:side])
-      response = TheCurrencyCloud.post_form("/#{token}/trade/execute_with_payment", options.merge(:side => side))
-      mash = Trade.new(response)
-      return mash.data
+      response = post('trade/execute_with_payment', options.merge(side: side))
+      Hashie::Mash.new(log_and_map(response)).data
     end
 
     def trade(trade_id)
-      response = TheCurrencyCloud.get("/#{token}/trade/#{trade_id}")
-      mash = Trade.new(response)
-      return mash.data
+      response = get("trade/#{trade_id}")
+      Hashie::Mash.new(log_and_map(response)).data
     end
 
+    # Bad API design here
     def settlement_account(trade_id)
-      response = TheCurrencyCloud.get("/#{token}/trade/#{trade_id}/settlement_account")
-      mash = Trade.new(response)
-      return mash
+      response = get("trade/#{trade_id}/settlement_account")
+      # Strange behaviour. If we try to access the data it is nulL
+      Hashie::Mash.new(log_and_map(response))
     end
     # Returns a list of payments
-    def payments(options={})
+    def payments(options = {})
       # /api/en/v1.0/:token/payments
-      response = TheCurrencyCloud.get("/#{token}/payments",query: options)
-      response.parsed_response['data'].collect{|d| Payment.new(d)}
+      response = get('payments', options)
+      log_and_map(response).parsed_response['data']
+                           .map { |d| Hashie::Mash.new(d) }
     end
 
-    def payment(trade_id,options={})
+    def payment(trade_id, options = {})
       # /api/en/v1.0/:token/payment/:payment_id
-      response = TheCurrencyCloud.get("/#{token}/payment/#{trade_id}")
-      mash = Payment.new(response)
-      return mash.data
+      response = get("payment/#{trade_id}", options)
+      Hashie::Mash.new(log_and_map(response)).data
     end
 
-    def create_payment(id,options)
-      #/api/en/v1.0/:token/payment/:payment_id
-      response = TheCurrencyCloud.post_form("/#{token}/payment/#{id}", options)
+    def create_payment(id, options)
+      # /api/en/v1.0/:token/payment/:payment_id
+      response = post("payment/#{id}", options)
+      log_and_map(response)
     end
 
     def add_payment(options)
-      Payment.new(TheCurrencyCloud.post_form("/#{token}/payment/add", options))
+      response = post('payment/add', options)
+      Hashie::Mash.new(log_and_map(response))
     end
 
     def update_payment(id, options)
-      TheCurrencyCloud.post_form("/#{token}/payment/#{id}", options)
+      response = post("payment/#{id}", options)
+      Hashie::Mash.new(log_and_map(response))
     end
 
     def bank_accounts
       # /api/en/v1.0/:token/bank_accounts
-      response = TheCurrencyCloud.get("/#{token}/bank_accounts")
-      response.parsed_response['data'].collect{|d| Bank.new(d)}
+      response = get('bank_accounts')
+      log_and_map(response).parsed_response['data']
+                           .map { |d| Hashie::Mash.new(d) }
     end
 
-    alias :beneficiaries :bank_accounts
+    alias_method :beneficiaries, :bank_accounts
 
     def beneficiary(id)
       # /api/en/v1.0/:token/bank_account/:beneficiary_id
-      response = TheCurrencyCloud.get("/#{token}/beneficiary/#{id}")
-      mash = Bank.new(response)
-      return mash.data
+      response = get("beneficiary/#{id}")
+      Hashie::Mash.new(log_and_map(response)).data
     end
 
     def update_beneficiary(beneficiary_id, beneficiary_details)
-      response = TheCurrencyCloud.post_form("/#{token}/beneficiary/#{beneficiary_id}", beneficiary_details)
-      mash = Beneficiary.new(response)
-      return mash.data
+      response = post("beneficiary/#{beneficiary_id}", beneficiary_details)
+      Hashie::Mash.new(log_and_map(response)).data
     end
 
     def beneficiaries
-      response = TheCurrencyCloud.get("/#{token}/beneficiaries")
-      mash = Beneficiary.new(response)
-      return mash.data
+      response = get('beneficiaries')
+      Hashie::Mash.new(log_and_map(response)).data
     end
 
     def create_beneficiary(beneficiary_details)
-      response = TheCurrencyCloud.post_form("/#{token}/beneficiary/new", beneficiary_details)
-      mash = Beneficiary.new(response)
-      return mash.data
+      response = post('beneficiary/new', beneficiary_details)
+      Hashie::Mash.new(log_and_map(response)).data
     end
 
     def beneficiary_required_details(currency, destination_country_code)
       # /api/en/v1.0/:token/beneficiaries/required_fields
-      response = TheCurrencyCloud.get("/#{token}/beneficiaries/required_fields?ccy=#{currency}&destination_country_code=#{destination_country_code}")
-      mash = Beneficiary.new(response)
-      return mash.data.collect(&:required).flatten.uniq
+      response = get('beneficiaries/required_fields',
+                     ccy: currency,
+                     destination_country_code: destination_country_code)
+      Hashie::Mash.new(log_and_map(response)).data.map(&:required).flatten.uniq
     end
 
     def beneficiary_validate_details(options = {})
-      query_string = options.to_query
-      response = TheCurrencyCloud.get("/#{token}/beneficiary/validate_details?#{query_string}")
-      mash = Beneficiary.new(response)
-      return mash.data
+      response = get('beneficiary/validate_details', options)
+      Hashie::Mash.new(log_and_map(response)).data
     end
 
     def bank_required_fields(currency, destination_country_code)
@@ -140,48 +144,41 @@ module TheCurrencyCloud
     end
 
     def create_bank_account(bank)
-      response = TheCurrencyCloud.post_form("/#{token}/bank_account/new",bank)
-      return Hashie::Mash.new(response).data
+      response = post('bank_account/new', bank)
+      Hashie::Mash.new(log_and_map(response)).data
     end
 
     # Close the session
     def close_session
-      #/api/en/v1.0/:token/close_session
-      response = TheCurrencyCloud.post("/#{token}/close_session")
-      mash = Hashie::Mash.new(response)
+      # /api/en/v1.0/:token/close_session
+      response = post('close_session')
       @token = nil
-      return mash.data
+      Hashie::Mash.new(log_and_map(response)).data
     end
 
     private
 
     def authenticate(login_id)
-      response = TheCurrencyCloud.post_form("/authentication/token/new", { :login_id => login_id, :api_key => @api_key || TheCurrencyCloud.api_key})
-      mash = Hashie::Mash.new(response)
-      return mash.data
+      response = TheCurrencyCloud.post(
+        '/authentication/token/new',
+        body: {
+          login_id: login_id,
+          api_key: @api_key || TheCurrencyCloud.api_key
+        }.to_query
+      )
+      Hashie::Mash.new(handle_response(response)).data
     end
 
     def get(action, options = {})
-      TheCurrencyCloud.get uri_for(action), :query => options
+      TheCurrencyCloud.get(uri_for(action), query: options)
     end
 
     def post(action, options = {})
-      if options.any?
-        return post_form(action,options)
-      end
-      TheCurrencyCloud.post uri_for(action)
-    end
-
-    def post_form(action, options = {})
-      TheCurrencyCloud.post_form uri_for(action), options
-    end
-
-    def put(action, options = {})
-      TheCurrencyCloud.put uri_for(action), :data => options
+      TheCurrencyCloud.post(uri_for(action), body: options.to_query)
     end
 
     def uri_for(action)
-      "/#{self.token}/#{action}"
+      "/#{token}/#{action}"
     end
 
     def convert_sell_sym(side)
@@ -190,9 +187,62 @@ module TheCurrencyCloud
       elsif side == :sell || side == 2
         side = 2
       else
-        raise "Side must be :buy or :sell"
+        fail 'Side must be :buy or :sell'
       end
-      return side
+
+      side
+    end
+
+    def log_and_map(response)
+      @logger.log(
+        @logger_key,
+        @broker_account_id,
+        response_to_hash(response),
+        request_to_hash(response.request)
+      ) if @logger
+
+      # If exception it will come here
+      handle_response(response)
+    end
+
+    def handle_response(response) # :nodoc:
+      case response.code
+      when 400
+        fail BadRequest.new(Hashie::Mash.new(response))
+      when 401
+        fail Unauthorized.new(Hashie::Mash.new(response))
+      when 404
+        fail NotFound.new(Hashie::Mash.new(response))
+      when 400...500
+        fail ClientError.new
+      when 500...600
+        fail ServerError.new
+      else
+        data = (response.body && response.body.length >= 2) ? response.body : nil
+        return response if data.nil?
+        mash_response = Hashie::Mash.new(JSON.parse(data))
+        if mash_response.status == 'error'
+          fail BadRequest.new(mash_response)
+        else
+          response
+        end
+      end
+    end
+
+    def response_to_hash(response)
+      { headers: response.headers, code: response.code, body: response.body }
+    end
+
+    def request_to_hash(request)
+      result = {
+        http_method: request.http_method.name.demodulize.upcase,
+        uri: request.uri.to_s,
+        headers: request.options[:headers].to_h,
+        query: request.options[:query],
+        body: request.options[:body]
+      }
+
+      result
     end
   end
 end
