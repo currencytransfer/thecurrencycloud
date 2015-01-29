@@ -194,15 +194,21 @@ module TheCurrencyCloud
     end
 
     def log_and_map(response)
-      @logger.log(
-        @logger_key,
-        @broker_account_id,
-        response_to_hash(response),
-        request_to_hash(response.request)
-      ) if @logger
-
-      # If exception it will come here
+      successful = true
       handle_response(response)
+    rescue => e
+      successful = false
+      raise e
+    ensure
+      if @logger
+        @logger.log(
+          @logger_key,
+          @broker_account_id,
+          response_to_hash(response),
+          request_to_hash(response.request),
+          successful: successful
+        )
+      end
     end
 
     def handle_response(response) # :nodoc:
