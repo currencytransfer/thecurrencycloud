@@ -1,10 +1,11 @@
-require 'test/unit'
+require 'minitest/autorun'
 require 'pathname'
 
 require 'shoulda'
 require 'matchy'
-require 'mocha'
+require 'mocha/setup'
 require 'fakeweb'
+require 'byebug'
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 $LOAD_PATH.unshift(File.dirname(__FILE__))
