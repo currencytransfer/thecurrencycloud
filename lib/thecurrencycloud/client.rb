@@ -1,4 +1,5 @@
 require 'thecurrencycloud'
+require 'active_support/all'
 require 'json'
 
 module TheCurrencyCloud
