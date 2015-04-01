@@ -1,15 +1,16 @@
 require 'thecurrencycloud'
+require 'active_support/all'
 require 'json'
 
 module TheCurrencyCloud
   # Represents a client and associated functionality.
   class Client
-    attr_reader :client_id, :api_key, :token
+    attr_reader :client_id, :api_key, :token, :token_renewed_block
 
-    def initialize(client_id, api_key = nil)
+    def initialize(client_id, api_key = nil, token = nil)
       @api_key = api_key
       @client_id = client_id
-      @token = authenticate(client_id)
+      @token = token ? token : authenticate(client_id)
     end
 
     def with_logger(logger, logger_key, broker_account_id = nil)
@@ -18,6 +19,10 @@ module TheCurrencyCloud
       @broker_account_id = broker_account_id
 
       self
+    end
+
+    def after_token_renewed(&block)
+      @token_renewed_block = block
     end
 
     def prices_market(ccy_pair, options = {})
@@ -170,11 +175,37 @@ module TheCurrencyCloud
     end
 
     def get(action, options = {})
-      TheCurrencyCloud.get(uri_for(action), query: options)
+      with_expired_token_handler(action) do
+        TheCurrencyCloud.get(uri_for(action), query: options)
+      end
     end
 
     def post(action, options = {})
-      TheCurrencyCloud.post(uri_for(action), body: options.to_query)
+      with_expired_token_handler(action) do
+        TheCurrencyCloud.post(uri_for(action), body: options.to_query)
+      end
+    end
+
+    def token_expired?(action, response)
+      if response.code == 200 && action != 'close_session'
+        parsed_response = Hashie::Mash.new(response.parsed_response)
+
+        return parsed_response.status.downcase == 'error' &&
+          parsed_response.message.downcase == 'supplied token was not recognised'
+      end
+      false
+    end
+
+    def with_expired_token_handler(action)
+      response = yield
+      if token_expired?(action, response)
+        @token = authenticate(client_id)
+        # tell the consumer that the token is renewed
+        token_renewed_block.call(@token) if token_renewed_block
+        # retry the request
+        response = yield
+      end
+      response
     end
 
     def uri_for(action)

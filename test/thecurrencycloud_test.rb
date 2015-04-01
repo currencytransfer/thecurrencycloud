@@ -1,8 +1,8 @@
 require File.dirname(__FILE__) + '/helper'
 
 class TheCurrencyCloudTest < Test::Unit::TestCase
-  context "set environment" do 
-    should "set base_uri for ref" do 
+  context "set environment" do
+    should "set base_uri for ref" do
       TheCurrencyCloud.environment :ref
       assert_equal 'http://refapi.thecurrencycloud.com/api/en/v1.0', TheCurrencyCloud.default_options[:base_uri]
     end
@@ -22,8 +22,14 @@ class TheCurrencyCloudTest < Test::Unit::TestCase
       context "#{status.first}, a get" do
         should "raise a #{exception.name} error" do
           stub_post(@api_key, "authentication/token/new", "authentication_success.json")
-          @client = TheCurrencyCloud::Client.new('321iuhiuhi1u23hi2u3')          
-          stub_get(@api_key, "d58440e120d6012dc05423001a48acdf/trades", (status.first == '400' or status.first == '401') ? 'custom_api_error.json' : nil, status)
+          @client = TheCurrencyCloud::Client.new('321iuhiuhi1u23hi2u3')
+          stub_get(
+            @api_key,
+            "d58440e120d6012dc05423001a48acdf/trades",
+            status.first.in?(%w(400 401 404)) ? 'custom_api_error.json' : nil,
+            status
+          )
+
           lambda { c = @client.trades }.should raise_error(exception)
         end
       end
