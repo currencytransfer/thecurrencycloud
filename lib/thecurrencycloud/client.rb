@@ -191,7 +191,10 @@ module TheCurrencyCloud
         parsed_response = Hashie::Mash.new(response.parsed_response)
 
         return parsed_response.status.downcase == 'error' &&
-          parsed_response.message.downcase == 'supplied token was not recognised'
+          parsed_response.message.downcase.in?([
+            'supplied token was not recognised',
+            'your session has expired'
+          ])
       end
       false
     end
