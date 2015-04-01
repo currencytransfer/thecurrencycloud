@@ -189,9 +189,10 @@ module TheCurrencyCloud
     def token_expired?(action, response)
       if response.code == 200 && action != 'close_session'
         parsed_response = Hashie::Mash.new(response.parsed_response)
+        message = parsed_response.message
 
-        return parsed_response.status.downcase == 'error' &&
-          parsed_response.message.downcase.in?([
+        return parsed_response.status == 'error' &&
+          message && message.downcase.in?([
             'supplied token was not recognised',
             'your session has expired'
           ])
